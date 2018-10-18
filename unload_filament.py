@@ -8,6 +8,7 @@ import os
 import usb.core
 import usb.util
 import time
+import json
 
 # Read pending data from MOD-t (bulk reads of 64 bytes)
 def read_modt(ep):
@@ -37,5 +38,10 @@ dev.write(2, '{"transport":{"attrs":["request","twoway"],"id":11},"data":{"comma
 
 while True:
  dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
- print(read_modt(0x83))
+ res = read_modt(0x83)
+ try:
+  parsed = json.loads(res)
+  print(json.dumps(parsed, indent=4, sort_keys=True))
+ except Exception:
+  print(res)
  time.sleep(5)

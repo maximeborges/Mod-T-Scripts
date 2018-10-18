@@ -9,14 +9,15 @@ import usb.core
 import usb.util
 import time
 from zlib import adler32
+import json
 
-# Adler32 checksum function 
+# Adler32 checksum function
 # Based on https://gist.github.com/kofemann/2303046
 # For some reason, mod-t uses 0, not 1 as the basis of the adler32 sum
 BLOCKSIZE=256*1024*1024
 
 def adler32_checksum(fname):
- asum = 0 
+ asum = 0
  f = open(fname, "rb")
  while True:
    data = f.read(BLOCKSIZE)
@@ -37,6 +38,13 @@ def read_modt(ep):
         fulltext = fulltext + text
  return fulltext
 
+def pretty_print(text):
+    try:
+     parsed = json.loads(text)
+     print(json.dumps(parsed, indent=4, sort_keys=True))
+    except Exception:
+     print(text)
+
 # Main program
 if __name__ == '__main__':
 
@@ -46,7 +54,7 @@ if __name__ == '__main__':
 
 # Read filename argument and check that the file exists
 fname=str(sys.argv[1])
-if not os.path.isfile(fname):	
+if not os.path.isfile(fname):
 	print(fname + " not found")
 	quit()
 
@@ -72,34 +80,34 @@ if dev is None:
 # configuration will be the active one
 dev.set_configuration()
 
-# These came from usb dump. 
-# Some commands are human readable some are maybe checksums 
+# These came from usb dump.
+# Some commands are human readable some are maybe checksums
 dev.write(2, bytearray.fromhex('246a0095ff'))
 dev.write(2, '{"transport":{"attrs":["request","twoway"],"id":3},"data":{"command":{"idx":0,"name":"bio_get_version"}}};')
-print(read_modt(0x81))
+pretty_print(read_modt(0x81))
 
 dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
-print(read_modt(0x83))
+pretty_print(read_modt(0x83))
 
 dev.write(2, bytearray.fromhex('248b0074ff'))
 dev.write(2, '{"transport":{"attrs":["request","twoway"],"id":5},"data":{"command":{"idx":22,"name":"wifi_client_get_status","args":{"interface_t":0}}}};')
-print(read_modt(0x81))
+pretty_print(read_modt(0x81))
 
 dev.write(2, bytearray.fromhex('246a0095ff'))
 dev.write(2, '{"transport":{"attrs":["request","twoway"],"id":7},"data":{"command":{"idx":0,"name":"bio_get_version"}}};')
-print(read_modt(0x81))
+pretty_print(read_modt(0x81))
 
 dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
-print(read_modt(0x83))
+pretty_print(read_modt(0x83))
 
 dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
-print(read_modt(0x83))
+pretty_print(read_modt(0x83))
 
 # Start writing actual gcode
 # File size and adler32 checksum calculated earlier
 dev.write(4, '{"metadata":{"version":1,"type":"file_push"},"file_push":{"size":'+str(size)+',"adler32":'+str(checksum)+',"job_id":""}}')
 
-# Write gcode in batches of 20 bulk writes, each 5120 bytes. 
+# Write gcode in batches of 20 bulk writes, each 5120 bytes.
 # Read mod-t status between these 20 bulk writes
 
 start=0
@@ -122,8 +130,8 @@ while True:
  if (start>size):
         break;
 
-# Gcode sent. Finally, loop and query mod-t status every 5 seconds 
+# Gcode sent. Finally, loop and query mod-t status every 5 seconds
 while True:
  dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
- print(read_modt(0x83))
+ pretty_print(read_modt(0x83))
  time.sleep(5)

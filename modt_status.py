@@ -8,6 +8,7 @@ import os
 import usb.core
 import usb.util
 import time
+import json
 
 # Read pending data from MOD-t (bulk reads of 64 bytes)
 def read_modt(ep):
@@ -25,8 +26,13 @@ dev = usb.core.find(idVendor=0x2b75, idProduct=0x0002)
 if dev is None:
     raise ValueError('Device not found')
 
-#Finally, loop and query mod-t status every 5 seconds 
+#Finally, loop and query mod-t status every 5 seconds
 while True:
  dev.write(4, '{"metadata":{"version":1,"type":"status"}}')
- print(read_modt(0x83))
+ res = read_modt(0x83)
+ try:
+  parsed = json.loads(res)
+  print(json.dumps(parsed, indent=4, sort_keys=True))
+ except Exception:
+  print(res)
  time.sleep(5)
